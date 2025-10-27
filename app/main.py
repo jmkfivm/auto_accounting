@@ -348,7 +348,7 @@ async def attempt_login_once(page, email, password):
     # Wait for network to settle
     await page.wait_for_load_state("networkidle", timeout=15000)
     await page.wait_for_timeout(1500)
-    if not await page.locator(BALANCE_SELECTOR_MAIN).count():
+    if not await page.locator(BALANCE_SELECTOR_MAIN).first.wait_for(timeout=8000):
         input()
     return True
 
@@ -471,7 +471,8 @@ def _push_to_sheet(balance, currency):
     if not WEBAPP_URL or not WEBAPP_TOKEN:
         raise RuntimeError("WEBAPP_URL/WEBAPP_TOKEN not configured")
     payload = {"neteller": str(balance)+str(currency), "vps": VPS}
-    r = requests.post(WEBAPP_URL, json=payload, timeout=25)
+    json_data = json.dumps(payload)
+    r = requests.post(WEBAPP_URL, data=json_data, timeout=25)
     r.raise_for_status()
     print(f"[OK] {datetime.now().isoformat(timespec='seconds')} -> {balance} {currency}")
 
