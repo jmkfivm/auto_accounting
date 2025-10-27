@@ -17,7 +17,7 @@ NETELLER_EMAIL = os.getenv("NETELLER_EMAIL", "")
 NETELLER_PASS  = os.getenv("NETELLER_PASS", "")
 
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", "https://member.neteller.com/wallet/ng/dashboard")
-
+CHROME_PROFILE_PATH = os.getenv("CHROME_PROFILE_PATH")
 USER_DATA_DIR = os.getenv("USER_DATA_DIR", "/app/user-data")
 
 BALANCE_SELECTOR_MAIN = os.getenv("BALANCE_SELECTOR_MAIN", ".ps-digits-1.balance-amount")
@@ -129,7 +129,7 @@ def get_last_used_profile(root: Path):
                     return p
         except Exception:
             pass
-    return None
+    return CHROME_PROFILE_PATH
 
 def _copy_host_profile_once():
     """Copy the mounted host Chrome profile into USER_DATA_DIR (first run only)."""
