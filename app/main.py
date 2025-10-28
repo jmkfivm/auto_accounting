@@ -348,10 +348,11 @@ async def attempt_login_once(page, email, password):
     # Wait for network to settle
     await page.wait_for_load_state("networkidle", timeout=15000)
     await page.wait_for_timeout(1500)
-    try:
-        await page.locator(BALANCE_SELECTOR_MAIN).first.wait_for(timeout=8000)
-    except Exception:
-        input()
+    for i in range(10):
+        try:
+            await page.locator(BALANCE_SELECTOR_MAIN).first.wait_for(timeout=8000)
+        except Exception:
+            pass
     return True
 
 async def ensure_logged_in(page, email, password, balance_selector_main):
