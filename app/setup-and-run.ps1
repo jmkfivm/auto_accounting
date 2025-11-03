@@ -5,14 +5,15 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 # ----------------- CONFIG -----------------
-$RepoOwner    = 'jmkfivm'
-$RepoName     = 'auto_accounting'
-$Branch       = 'main'
-$RepoUrl      = "https://github.com/$RepoOwner/$RepoName.git"
-$ZipUrl       = "https://codeload.github.com/$RepoOwner/$RepoName/zip/refs/heads/$Branch"
-$RawBase      = "https://raw.githubusercontent.com/$RepoOwner/$RepoName/$Branch"
-$AppDir       = Join-Path $env:USERPROFILE $RepoName
-$Requirements = 'requirements.txt'
+$RepoOwner     = 'jmkfivm'
+$RepoName      = 'auto_accounting'
+$Branch        = 'main'
+$RepoUrl       = "https://github.com/$RepoOwner/$RepoName.git"
+$ZipUrl        = "https://codeload.github.com/$RepoOwner/$RepoName/zip/refs/heads/$Branch"
+$RawBase       = "https://raw.githubusercontent.com/$RepoOwner/$RepoName/$Branch"
+$AppDir        = Join-Path $env:USERPROFILE $RepoName
+$Requirements  = 'requirements.txt'
+$PythonVersion = '3.12'   # ✅ fixed version used for venv
 # ------------------------------------------
 
 # -------- Logging (ASCII only) --------
@@ -137,14 +138,36 @@ function Ensure-Repo {
 function Ensure-Venv {
   param([string]$appDir)
   $script:PyExe = Join-Path $appDir ".venv\Scripts\python.exe"
-  if (Test-Path $PyExe) { Write-Ok "Using project venv: $($PyExe | Split-Path -Parent)"; return }
-  Write-Info "Creating project venv with uv..."
+
+  # Reuse existing venv if present
+  if (Test-Path $PyExe) {
+    Write-Ok "Using existing project venv: $($PyExe | Split-Path -Parent)"
+    return
+  }
+
+  # Ensure Python 3.12 is available
+  Write-Info "Checking for Python $PythonVersion in uv..."
+  $pythonList = & $UvExe python list | Out-String
+  if ($pythonList -notmatch $PythonVersion) {
+    Write-Warn "Python $PythonVersion not found. Installing via uv..."
+    & $UvExe python install $PythonVersion | Out-Host
+  } else {
+    Write-Ok "Python $PythonVersion already available in uv."
+  }
+
+  # Create venv
+  Write-Info "Creating project venv with Python $PythonVersion..."
   $old = Get-Location
   Set-Location $appDir
-  & $UvExe venv | Out-Host
+  & $UvExe venv --python $PythonVersion | Out-Host
   Set-Location $old
-  if (-not (Test-Path $PyExe)) { Write-Err "Failed to create .venv under $appDir"; exit 1 }
-  Write-Ok "Venv created at $(Join-Path $appDir '.venv')"
+
+  if (-not (Test-Path $PyExe)) {
+    Write-Err "Failed to create .venv under $appDir"
+    exit 1
+  }
+
+  Write-Ok "Venv created at $(Join-Path $appDir '.venv') using Python $PythonVersion"
 }
 
 # -------- Install deps + Playwright (inside .venv) --------
@@ -171,7 +194,10 @@ function Run-App {
   Set-Location $AppDir
 
   $entry = "app\main.py"
-  if (-not (Test-Path $entry)) { Write-Err "Entry file '$entry' not found in $AppDir."; exit 1 }
+  if (-not (Test-Path $entry)) {
+    Write-Err "Entry file '$entry' not found in $AppDir."
+    exit 1
+  }
 
   Write-Info "Launching app (headed) via project venv..."
   $env:PW_HEADLESS = "0"
